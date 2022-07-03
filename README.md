@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/newAM/nix-post-build-hook-queue/workflows/CI/badge.svg)](https://github.com/newAM/nix-post-build-hook-queue/actions)
 
-From the [Using the post-build-hook] entry in the nix manual:
+From [Using the post-build-hook] in the nix manual:
 
 > The post build hook program runs after each executed build, and blocks the build loop. The build loop exits if the hook program fails.
 > 
@@ -14,7 +14,7 @@ This is my implementation of a user-supplied daemon to process the store paths o
 
 There are two binaries, a server and a client, both running on the same system.
 
-The client binary is called in the `post-build-hook` in `nix.conf`, the server binary runs as a daemon.
+The client binary is called by `post-build-hook` in `nix.conf`, the server binary runs as a daemon.
 
 The client sends store paths to the server via unix domain socket.
 
