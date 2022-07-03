@@ -1,0 +1,4 @@
+[workspace]
+resolver = "2"
+members = ["client", "server"]
+default-members = ["client", "server"]

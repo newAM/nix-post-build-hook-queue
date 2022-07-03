@@ -1,0 +1,12 @@
+[package]
+name = "nix-post-build-hook-queue-client"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["Alex Martens <alex@thinglab.org>"]
+repository = "https://github.com/newAM/nix-post-build-hook-queue"
+license = "MIT"
+
+[dependencies]
+anyhow = "1"
+nix-post-build-hook-queue-shared.path = "../shared"

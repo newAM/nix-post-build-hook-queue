@@ -1,0 +1,17 @@
+[package]
+name = "nix-post-build-hook-queue-server"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["Alex Martens <alex@thinglab.org>"]
+repository = "https://github.com/newAM/nix-post-build-hook-queue"
+license = "MIT"
+
+[dependencies]
+anyhow = "1"
+ctrlc = "3"
+log = "0.4"
+systemd-journal-logger = "0.5"
+nix-post-build-hook-queue-shared.path = "../shared"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
