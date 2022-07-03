@@ -72,6 +72,25 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !lib.isStorePath cfg.signingPrivateKeyPath;
+        message = ''
+          <option>services.nix-post-build-hook-queue.signingPrivateKeyPath</option>
+          points to a file in the Nix store.
+          You should use a quoted absolute path to prevent this.
+        '';
+      }
+      {
+        assertion = !lib.isStorePath cfg.sshPrivateKeyPath;
+        message = ''
+          <option>services.nix-post-build-hook-queue.sshPrivateKeyPath</option>
+          points to a file in the Nix store.
+          You should use a quoted absolute path to prevent this.
+        '';
+      }
+    ];
+
 
     users = {
       users."${cfg.user}" = {
