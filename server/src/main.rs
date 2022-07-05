@@ -12,14 +12,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-const SIGNING_TIMEOUT: Duration = Duration::from_secs(30);
+const SIGNING_TIMEOUT: Duration = Duration::from_secs(60);
 
-// 8 GiB is pretty reasonable
-const MAX_SIZE_STORE_PATH_BYTES: u64 = 8 * 1024 * 1024 * 1024;
-// Assume 1 GbE
-const LINK_SPEED_BITS_PER_SEC: u64 = 940 * 1000 * 1000;
-const UPLOAD_TIMEOUT: Duration =
-    Duration::from_secs(MAX_SIZE_STORE_PATH_BYTES * 8 / LINK_SPEED_BITS_PER_SEC);
+// 10 minutes seems reasonable
+const UPLOAD_TIMEOUT: Duration = Duration::from_secs(600);
 
 #[derive(Debug, Deserialize)]
 struct Config {
