@@ -3,6 +3,8 @@
 
 let
   cfg = config.services.nix-post-build-hook-queue;
+  # Also hard-coded in binaries
+  stateDir = "/var/lib/nix-post-build-hook-queue";
 in
 {
   options.services.nix-post-build-hook-queue = with lib; {
@@ -61,14 +63,6 @@ in
         Group under which the daemon runs.
       '';
     };
-
-    stateDir = mkOption {
-      type = types.path;
-      default = "/var/lib/nix-post-build-hook-queue";
-      description = ''
-        Directory holding all state for nix-post-build-hook-queue to run.
-      '';
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -98,7 +92,7 @@ in
         description = "Nix post-build user";
         isSystemUser = true;
         createHome = true;
-        home = "${cfg.stateDir}";
+        home = stateDir;
       };
       groups."${cfg.group}" = { };
     };
@@ -172,7 +166,7 @@ in
           ProtectKernelTunables = true;
           ProtectSystem = "strict";
           BindPaths = [
-            "${cfg.stateDir}"
+            stateDir
           ];
           MemoryDenyWriteExecute = true;
           LockPersonality = true;
