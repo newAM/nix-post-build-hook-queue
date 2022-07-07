@@ -16,7 +16,7 @@ fn fallible_main() -> anyhow::Result<()> {
         .with_context(|| format!("Failed to connect to socket at {SOCK_PATH}"))?;
 
     for store_path in std::env::args().skip(1) {
-        println!("Sending {} to daemon for upload", store_path);
+        println!("Sending to daemon: {store_path}");
         let n_bytes: usize = sock
             .send(store_path.as_bytes())
             .with_context(|| format!("Failed to write store path '{store_path}' to socket"))?;
