@@ -61,7 +61,8 @@ The server daemon will sign the paths, and optionally upload them to your cache.
 
   services.nix-post-build-hook-queue = {
     enable = true;
-    cachePrivateKeyPath = config.sops.secrets.cache-signing-priv-key.path;
+    signingPrivateKeyPath = config.sops.secrets.cache-signing-priv-key.path;
+    # optional settings to upload store paths after signing
     sshPrivateKeyPath = config.sops.secrets.cache-ssh-priv-key.path;
     uploadTo = "ssh://nix-ssh@nix-cache.example.com";
   };
