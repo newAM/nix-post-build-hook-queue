@@ -22,7 +22,7 @@ struct Config {
     /// Path to nix binary
     nix_bin: String,
     /// Private key path for signing
-    key_path: String,
+    key_path: Option<String>,
     /// Upload the store path to the given location
     upload: Option<String>,
 }
@@ -110,19 +110,21 @@ fn main() -> anyhow::Result<()> {
         }
         let path: &OsStr = OsStr::from_bytes(&buf[..n_bytes]);
 
-        log::info!("Signing {path:?}");
-        let child: io::Result<Child> = Command::new(&config.nix_bin)
-            .arg("store")
-            .arg("sign")
-            .arg("--key-file")
-            .arg(&config.key_path)
-            .arg(path)
-            .spawn();
+        if let Some(key_path) = config.key_path {
+            log::info!("Signing {path:?}");
+            let child: io::Result<Child> = Command::new(&config.nix_bin)
+                .arg("store")
+                .arg("sign")
+                .arg("--key-file")
+                .arg(&config.key_path)
+                .arg(path)
+                .spawn();
 
-        let signed: bool = run_timeout(child, SIGNING_TIMEOUT)?.map_or(false, |s| s == 0);
-        if !signed {
-            log::warn!("Path is not signed, skipping all other actions");
-            continue;
+            let signed: bool = run_timeout(child, SIGNING_TIMEOUT)?.map_or(false, |s| s == 0);
+            if !signed {
+                log::warn!("Path is not signed, skipping all other actions");
+                continue;
+            }
         }
 
         if let Some(dst) = &config.upload {

@@ -20,10 +20,12 @@ in
     };
 
     signingPrivateKeyPath = mkOption {
-      type = types.path;
+      type = types.nullOr types.path;
+      default = null;
       description = ''
         Path to the PEM encoded private key to sign store paths.
-        Setting this enables signing.
+
+        Paths will not be signed if null.
       '';
     };
 
@@ -33,6 +35,8 @@ in
       example = "ssh://nix-ssh@nix-cache.example.com";
       description = ''
         Binary cache to upload store paths to after building.
+
+        Paths will not be uploaded if null.
       '';
     };
 
@@ -44,7 +48,7 @@ in
 
         This is only relevant if
         <link linkend="opt-services.nix-post-build-hook-queue.uploadTo">uploadTo</link>
-        is set to a binary cache served over SSH.
+        is set to an SSH URL.
       '';
     };
 

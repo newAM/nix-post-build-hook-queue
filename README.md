@@ -18,7 +18,10 @@ The client binary is called by `post-build-hook` in `nix.conf`, the server binar
 
 The client sends store paths to the server via unix domain socket.
 
-The server daemon will sign the paths, and optionally upload them to your cache.
+The server daemon will:
+
+1. Sign paths, if `signingPrivateKeyPath` is set
+2. Upload paths, if `uploadTo` is set
 
 ## Usage
 
