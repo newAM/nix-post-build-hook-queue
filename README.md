@@ -64,6 +64,7 @@ The server daemon will:
 
   services.nix-post-build-hook-queue = {
     enable = true;
+    # optional setting to sign paths before uploading
     signingPrivateKeyPath = config.sops.secrets.cache-signing-priv-key.path;
     # optional settings to upload store paths after signing
     sshPrivateKeyPath = config.sops.secrets.cache-ssh-priv-key.path;
