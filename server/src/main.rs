@@ -110,13 +110,13 @@ fn main() -> anyhow::Result<()> {
         }
         let path: &OsStr = OsStr::from_bytes(&buf[..n_bytes]);
 
-        if let Some(key_path) = config.key_path {
+        if let Some(key_path) = &config.key_path {
             log::info!("Signing {path:?}");
             let child: io::Result<Child> = Command::new(&config.nix_bin)
                 .arg("store")
                 .arg("sign")
                 .arg("--key-file")
-                .arg(&config.key_path)
+                .arg(key_path)
                 .arg(path)
                 .spawn();
 
