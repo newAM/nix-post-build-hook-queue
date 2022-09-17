@@ -15,9 +15,7 @@
       clientCargoToml = nixpkgs.lib.importTOML ./client/Cargo.toml;
       serverCargoToml = nixpkgs.lib.importTOML ./server/Cargo.toml;
 
-      commonArgs = {
-        src = ./.;
-      };
+      commonArgs.src = ./.;
 
       cargoArtifacts = craneLib.buildDepsOnly commonArgs;
     in
@@ -27,15 +25,13 @@
           inherit cargoArtifacts;
           pname = clientCargoToml.package.name;
           inherit (clientCargoToml.package) version;
-          cargoBuildCommand = "cargo build -p ${clientCargoToml.package.name} --release";
-          cargoTestCommand = "cargo test -p ${clientCargoToml.package.name} --release";
+          cargoExtraArgs = "-p ${clientCargoToml.package.name}";
         });
         server = crane.lib.x86_64-linux.buildPackage (commonArgs // {
           inherit cargoArtifacts;
           pname = serverCargoToml.package.name;
           inherit (serverCargoToml.package) version;
-          cargoBuildCommand = "cargo build -p ${serverCargoToml.package.name} --release";
-          cargoTestCommand = "cargo test -p ${serverCargoToml.package.name} --release";
+          cargoExtraArgs = "-p ${serverCargoToml.package.name}";
         });
       };
 
