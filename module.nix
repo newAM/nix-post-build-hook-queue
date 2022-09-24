@@ -101,22 +101,10 @@ in
       groups."${cfg.group}" = { };
     };
 
-    nix.settings.trusted-users = [ cfg.user ];
-
-    nix.extraOptions =
-      let
-        clientBin = "${pkgs.nix-post-build-hook-queue-client}/bin/nix-post-build-hook-queue-client";
-
-        postBuildHook = pkgs.writeShellScriptBin "post-build-hook" ''
-          set -f # disable globbing
-          export IFS=' '
-
-          ${clientBin} $OUT_PATHS || true
-        '';
-      in
-      ''
-        post-build-hook = ${postBuildHook}/bin/post-build-hook
-      '';
+    nix.settings = {
+      trusted-users = [ cfg.user ];
+      post-build-hook = "${pkgs.nix-post-build-hook-queue-client}/bin/nix-post-build-hook-queue-client";
+    };
 
     systemd.services.nix-post-build-hook-queue =
       let
