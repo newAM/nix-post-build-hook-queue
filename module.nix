@@ -2,9 +2,9 @@
 
 
 let
+  # must match SOCK_PATH in shared
+  ListenDatagram = "/run/nix-post-build-hook-queue/nix-post-build-hook-queue.sock";
   cfg = config.services.nix-post-build-hook-queue;
-  # Also hard-coded in binaries
-  stateDir = "/var/lib/nix-post-build-hook-queue";
 in
 {
   options.services.nix-post-build-hook-queue = with lib; {
@@ -95,8 +95,7 @@ in
         inherit (cfg) group;
         description = "Nix post-build user";
         isSystemUser = true;
-        createHome = true;
-        home = stateDir;
+        createHome = false;
       };
       groups."${cfg.group}" = { };
     };
@@ -104,6 +103,17 @@ in
     nix.settings = {
       trusted-users = [ cfg.user ];
       post-build-hook = "${pkgs.nix-post-build-hook-queue-client}/bin/nix-post-build-hook-queue-client";
+    };
+
+    systemd.sockets.nix-post-build-hook-queue = {
+      description = "Nix post-build hook queue daemon socket";
+      wantedBy = [ "sockets.target" ];
+      socketConfig = {
+        inherit ListenDatagram;
+        SocketUser = cfg.user;
+        SocketGroup = cfg.group;
+        SocketMode = "0600";
+      };
     };
 
     systemd.services.nix-post-build-hook-queue =
@@ -116,7 +126,6 @@ in
         serverBin = "${pkgs.nix-post-build-hook-queue-server}/bin/nix-post-build-hook-queue-server";
       in
       {
-        wantedBy = [ "multi-user.target" ];
         after = [ ] ++ lib.optional (cfg.uploadTo != null) "network.target";
         description = "nix-post-build-hook-queue";
         path = [ ] ++ lib.optional (cfg.uploadTo != null) pkgs.openssh;
@@ -157,9 +166,7 @@ in
           ProtectKernelModules = true;
           ProtectKernelTunables = true;
           ProtectSystem = "strict";
-          BindPaths = [
-            stateDir
-          ];
+          BindPaths = [ ];
           MemoryDenyWriteExecute = true;
           LockPersonality = true;
           RemoveIPC = true;

@@ -4,7 +4,7 @@ use nix_post_build_hook_queue_shared::SOCK_PATH;
 use serde::Deserialize;
 use std::{
     ffi::{OsStr, OsString},
-    fs::{self, File},
+    fs::File,
     io::{self, BufReader, ErrorKind},
     os::unix::{net::UnixDatagram, prelude::OsStrExt},
     path::Path,
@@ -95,9 +95,9 @@ fn main() -> anyhow::Result<()> {
 
     log::debug!("{config:#?}");
 
-    let _ = fs::remove_file(SOCK_PATH);
-    let sock: UnixDatagram = UnixDatagram::bind(SOCK_PATH)
-        .with_context(|| format!("Failed to bind socket at {SOCK_PATH}"))?;
+    let sock: UnixDatagram = UnixDatagram::unbound()?;
+    sock.connect(SOCK_PATH)
+        .with_context(|| format!("Failed to connect to socket at {SOCK_PATH}"))?;
 
     log::debug!("Bound socket at {SOCK_PATH}");
 
