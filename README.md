@@ -55,6 +55,7 @@ The server daemon will:
       sopsAttrs = {
         mode = "0400";
         owner = config.services.nix-post-build-hook-queue.user;
+        restartUnits = [ "nix-post-build-hook-queue.service" ];
       };
     in
     {
