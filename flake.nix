@@ -7,60 +7,65 @@
     };
   };
 
-  outputs = { self, nixpkgs, crane }:
-    let
-      pkgs = nixpkgs.legacyPackages.x86_64-linux;
-      craneLib = crane.lib.x86_64-linux;
+  outputs = {
+    self,
+    nixpkgs,
+    crane,
+  }: let
+    pkgs = nixpkgs.legacyPackages.x86_64-linux;
+    craneLib = crane.lib.x86_64-linux;
 
-      clientCargoToml = nixpkgs.lib.importTOML ./client/Cargo.toml;
-      serverCargoToml = nixpkgs.lib.importTOML ./server/Cargo.toml;
+    clientCargoToml = nixpkgs.lib.importTOML ./client/Cargo.toml;
+    serverCargoToml = nixpkgs.lib.importTOML ./server/Cargo.toml;
 
-      commonArgs.src = ./.;
+    commonArgs.src = ./.;
 
-      cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-    in
-    {
-      packages.x86_64-linux = {
-        client = crane.lib.x86_64-linux.buildPackage (commonArgs // {
+    cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+  in {
+    packages.x86_64-linux = {
+      client = crane.lib.x86_64-linux.buildPackage (commonArgs
+        // {
           inherit cargoArtifacts;
           pname = clientCargoToml.package.name;
           inherit (clientCargoToml.package) version;
           cargoExtraArgs = "-p ${clientCargoToml.package.name}";
         });
-        server = crane.lib.x86_64-linux.buildPackage (commonArgs // {
+      server = crane.lib.x86_64-linux.buildPackage (commonArgs
+        // {
           inherit cargoArtifacts;
           pname = serverCargoToml.package.name;
           inherit (serverCargoToml.package) version;
           cargoExtraArgs = "-p ${serverCargoToml.package.name}";
         });
-      };
+    };
 
-      checks.x86_64-linux = {
-        inherit (self.packages.x86_64-linux) client server;
+    checks.x86_64-linux = {
+      inherit (self.packages.x86_64-linux) client server;
 
-        clippy = craneLib.cargoClippy (commonArgs // {
+      clippy = craneLib.cargoClippy (commonArgs
+        // {
           inherit cargoArtifacts;
           cargoClippyExtraArgs = "-- --deny warnings";
         });
 
-        rustfmt = craneLib.cargoFmt { src = ./.; };
+      rustfmt = craneLib.cargoFmt {src = ./.;};
 
-        nixpkgs-fmt = pkgs.runCommand "nixpkgs-fmt" { } ''
-          ${pkgs.nixpkgs-fmt}/bin/nixpkgs-fmt --check ${./.}
-          touch $out
-        '';
+      alejandra = pkgs.runCommand "alejandra" {} ''
+        ${pkgs.alejandra}/bin/alejandra --check ${./.}
+        touch $out
+      '';
 
-        statix = pkgs.runCommand "statix" { } ''
-          ${pkgs.statix}/bin/statix check ${./.}
-          touch $out
-        '';
-      };
-
-      overlays.default = final: prev: {
-        nix-post-build-hook-queue-client = self.packages.${prev.system}.client;
-        nix-post-build-hook-queue-server = self.packages.${prev.system}.server;
-      };
-
-      nixosModules.default = import ./module.nix;
+      statix = pkgs.runCommand "statix" {} ''
+        ${pkgs.statix}/bin/statix check ${./.}
+        touch $out
+      '';
     };
+
+    overlays.default = final: prev: {
+      nix-post-build-hook-queue-client = self.packages.${prev.system}.client;
+      nix-post-build-hook-queue-server = self.packages.${prev.system}.server;
+    };
+
+    nixosModules.default = import ./module.nix;
+  };
 }

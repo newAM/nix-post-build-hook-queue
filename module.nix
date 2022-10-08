@@ -1,12 +1,13 @@
-{ config, lib, pkgs, ... }:
-
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.nix-post-build-hook-queue;
   # Also hard-coded in binaries
   stateDir = "/var/lib/nix-post-build-hook-queue";
-in
-{
+in {
   options.services.nix-post-build-hook-queue = with lib; {
     enable = lib.mkEnableOption "nix-post-build-hook-queue";
 
@@ -89,7 +90,6 @@ in
       }
     ];
 
-
     users = {
       users."${cfg.user}" = {
         inherit (cfg) group;
@@ -98,90 +98,91 @@ in
         createHome = true;
         home = stateDir;
       };
-      groups."${cfg.group}" = { };
+      groups."${cfg.group}" = {};
     };
 
     nix.settings = {
-      trusted-users = [ cfg.user ];
+      trusted-users = [cfg.user];
       post-build-hook = "${pkgs.nix-post-build-hook-queue-client}/bin/nix-post-build-hook-queue-client";
     };
 
-    systemd.services.nix-post-build-hook-queue =
-      let
-        configFile = pkgs.writeText "nix-post-build-hook-queue-config.json" (builtins.toJSON {
-          nix_bin = "${cfg.package}/bin/nix";
-          key_path = "${cfg.signingPrivateKeyPath}";
-          upload = cfg.uploadTo;
-        });
-        serverBin = "${pkgs.nix-post-build-hook-queue-server}/bin/nix-post-build-hook-queue-server";
-      in
-      {
-        wantedBy = [ "multi-user.target" ];
-        after = [ ] ++ lib.optional (cfg.uploadTo != null) "network.target";
-        description = "nix-post-build-hook-queue";
-        path = [ ] ++ lib.optional (cfg.uploadTo != null) pkgs.openssh;
-        environment = {
-          NIX_SSHOPTS = "-o IPQoS=throughput"
-            + lib.optionalString (cfg.sshPrivateKeyPath != null) " -i ${cfg.sshPrivateKeyPath}";
-        };
+    systemd.services.nix-post-build-hook-queue = let
+      configFile = pkgs.writeText "nix-post-build-hook-queue-config.json" (builtins.toJSON {
+        nix_bin = "${cfg.package}/bin/nix";
+        key_path = "${cfg.signingPrivateKeyPath}";
+        upload = cfg.uploadTo;
+      });
+      serverBin = "${pkgs.nix-post-build-hook-queue-server}/bin/nix-post-build-hook-queue-server";
+    in {
+      wantedBy = ["multi-user.target"];
+      after = [] ++ lib.optional (cfg.uploadTo != null) "network.target";
+      description = "nix-post-build-hook-queue";
+      path = [] ++ lib.optional (cfg.uploadTo != null) pkgs.openssh;
+      environment = {
+        NIX_SSHOPTS =
+          "-o IPQoS=throughput"
+          + lib.optionalString (cfg.sshPrivateKeyPath != null) " -i ${cfg.sshPrivateKeyPath}";
+      };
 
-        serviceConfig = {
-          Type = "idle";
-          KillSignal = "SIGINT";
-          ExecStart = "${serverBin} ${configFile}";
-          Restart = "on-failure";
-          RestartSec = 300;
+      serviceConfig = {
+        Type = "idle";
+        KillSignal = "SIGINT";
+        ExecStart = "${serverBin} ${configFile}";
+        Restart = "on-failure";
+        RestartSec = 300;
 
-          User = cfg.user;
-          Group = cfg.group;
+        User = cfg.user;
+        Group = cfg.group;
 
-          # hardening
-          DevicePolicy = "closed";
-          CapabilityBoundingSet = "";
-          RestrictAddressFamilies = [
+        # hardening
+        DevicePolicy = "closed";
+        CapabilityBoundingSet = "";
+        RestrictAddressFamilies =
+          [
             "AF_UNIX"
-          ] ++ lib.optionals (cfg.uploadTo != null) [
+          ]
+          ++ lib.optionals (cfg.uploadTo != null) [
             "AF_INET"
             "AF_INET6"
           ];
-          DeviceAllow = [ ];
-          NoNewPrivileges = true;
-          PrivateDevices = true;
-          PrivateMounts = true;
-          PrivateTmp = true;
-          PrivateUsers = true;
-          ProtectClock = true;
-          ProtectControlGroups = true;
-          ProtectHome = true;
-          ProtectKernelLogs = true;
-          ProtectKernelModules = true;
-          ProtectKernelTunables = true;
-          ProtectSystem = "strict";
-          BindPaths = [
-            stateDir
-          ];
-          MemoryDenyWriteExecute = true;
-          LockPersonality = true;
-          RemoveIPC = true;
-          RestrictNamespaces = true;
-          RestrictRealtime = true;
-          RestrictSUIDSGID = true;
-          SystemCallArchitectures = "native";
-          SystemCallFilter = [
-            "~@debug"
-            "~@mount"
-            "~@privileged"
-            "~@resources"
-            "~@cpu-emulation"
-            "~@obsolete"
-          ];
-          ProtectProc = "invisible";
-          ProtectHostname = true;
+        DeviceAllow = [];
+        NoNewPrivileges = true;
+        PrivateDevices = true;
+        PrivateMounts = true;
+        PrivateTmp = true;
+        PrivateUsers = true;
+        ProtectClock = true;
+        ProtectControlGroups = true;
+        ProtectHome = true;
+        ProtectKernelLogs = true;
+        ProtectKernelModules = true;
+        ProtectKernelTunables = true;
+        ProtectSystem = "strict";
+        BindPaths = [
+          stateDir
+        ];
+        MemoryDenyWriteExecute = true;
+        LockPersonality = true;
+        RemoveIPC = true;
+        RestrictNamespaces = true;
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        SystemCallArchitectures = "native";
+        SystemCallFilter = [
+          "~@debug"
+          "~@mount"
+          "~@privileged"
+          "~@resources"
+          "~@cpu-emulation"
+          "~@obsolete"
+        ];
+        ProtectProc = "invisible";
+        ProtectHostname = true;
 
-          # permissive to prevent GC warnings
-          # "GC Warning: Couldn't read /proc/stat"
-          ProcSubset = "all";
-        };
+        # permissive to prevent GC warnings
+        # "GC Warning: Couldn't read /proc/stat"
+        ProcSubset = "all";
       };
+    };
   };
 }
