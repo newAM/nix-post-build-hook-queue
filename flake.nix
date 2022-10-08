@@ -21,6 +21,8 @@
     commonArgs.src = craneLib.cleanCargoSource ./.;
 
     cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+    nixSrc = nixpkgs.lib.sources.sourceFilesBySuffices ./. [".nix"];
   in {
     packages.x86_64-linux = {
       client = crane.lib.x86_64-linux.buildPackage (commonArgs
@@ -51,12 +53,12 @@
       rustfmt = craneLib.cargoFmt {inherit (commonArgs) src;};
 
       alejandra = pkgs.runCommand "alejandra" {} ''
-        ${pkgs.alejandra}/bin/alejandra --check ${./.}
+        ${pkgs.alejandra}/bin/alejandra --check ${nixSrc}
         touch $out
       '';
 
       statix = pkgs.runCommand "statix" {} ''
-        ${pkgs.statix}/bin/statix check ${./.}
+        ${pkgs.statix}/bin/statix check ${nixSrc}
         touch $out
       '';
     };
