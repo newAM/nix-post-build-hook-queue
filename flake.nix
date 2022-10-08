@@ -18,7 +18,7 @@
     clientCargoToml = nixpkgs.lib.importTOML ./client/Cargo.toml;
     serverCargoToml = nixpkgs.lib.importTOML ./server/Cargo.toml;
 
-    commonArgs.src = ./.;
+    commonArgs.src = craneLib.cleanCargoSource ./.;
 
     cargoArtifacts = craneLib.buildDepsOnly commonArgs;
   in {
@@ -48,7 +48,7 @@
           cargoClippyExtraArgs = "-- --deny warnings";
         });
 
-      rustfmt = craneLib.cargoFmt {src = ./.;};
+      rustfmt = craneLib.cargoFmt {inherit (commonArgs) src;};
 
       alejandra = pkgs.runCommand "alejandra" {} ''
         ${pkgs.alejandra}/bin/alejandra --check ${./.}
