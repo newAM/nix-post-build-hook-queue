@@ -322,9 +322,9 @@ dependencies = [
 
 [[package]]
 name = "systemd-journal-logger"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2b2b2ff370208ad472629786a66dc252933843755a1d620a54a8fdd0fccb31f"
+checksum = "8ceaa903d2e90e5110f5ae21e4adcb3436c68f4bdffa0ce2337a16769f9194a0"
 dependencies = [
  "libsystemd",
  "log",
