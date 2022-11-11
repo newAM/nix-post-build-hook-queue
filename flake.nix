@@ -18,39 +18,36 @@
     clientCargoToml = nixpkgs.lib.importTOML ./client/Cargo.toml;
     serverCargoToml = nixpkgs.lib.importTOML ./server/Cargo.toml;
 
-    commonArgs.src = craneLib.cleanCargoSource ./.;
+    src = craneLib.cleanCargoSource ./.;
 
-    cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-
-    nixSrc = nixpkgs.lib.sources.sourceFilesBySuffices ./. [".nix"];
+    cargoArtifacts = craneLib.buildDepsOnly {inherit src;};
   in {
     packages.x86_64-linux = {
-      client = crane.lib.x86_64-linux.buildPackage (commonArgs
-        // {
-          inherit cargoArtifacts;
-          pname = clientCargoToml.package.name;
-          inherit (clientCargoToml.package) version;
-          cargoExtraArgs = "-p ${clientCargoToml.package.name}";
-        });
-      server = crane.lib.x86_64-linux.buildPackage (commonArgs
-        // {
-          inherit cargoArtifacts;
-          pname = serverCargoToml.package.name;
-          inherit (serverCargoToml.package) version;
-          cargoExtraArgs = "-p ${serverCargoToml.package.name}";
-        });
+      client = crane.lib.x86_64-linux.buildPackage {
+        inherit src cargoArtifacts;
+        pname = clientCargoToml.package.name;
+        inherit (clientCargoToml.package) version;
+        cargoExtraArgs = "-p ${clientCargoToml.package.name}";
+      };
+      server = crane.lib.x86_64-linux.buildPackage {
+        inherit src cargoArtifacts;
+        pname = serverCargoToml.package.name;
+        inherit (serverCargoToml.package) version;
+        cargoExtraArgs = "-p ${serverCargoToml.package.name}";
+      };
     };
 
-    checks.x86_64-linux = {
+    checks.x86_64-linux = let
+      nixSrc = nixpkgs.lib.sources.sourceFilesBySuffices ./. [".nix"];
+    in {
       inherit (self.packages.x86_64-linux) client server;
 
-      clippy = craneLib.cargoClippy (commonArgs
-        // {
-          inherit cargoArtifacts;
-          cargoClippyExtraArgs = "-- --deny warnings";
-        });
+      clippy = craneLib.cargoClippy {
+        inherit src cargoArtifacts;
+        cargoClippyExtraArgs = "-- --deny warnings";
+      };
 
-      rustfmt = craneLib.cargoFmt {inherit (commonArgs) src;};
+      rustfmt = craneLib.cargoFmt {inherit src;};
 
       alejandra = pkgs.runCommand "alejandra" {} ''
         ${pkgs.alejandra}/bin/alejandra --check ${nixSrc}
