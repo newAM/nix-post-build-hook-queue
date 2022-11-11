@@ -109,7 +109,7 @@ in {
     systemd.services.nix-post-build-hook-queue = let
       configFile = pkgs.writeText "nix-post-build-hook-queue-config.json" (builtins.toJSON {
         nix_bin = "${cfg.package}/bin/nix";
-        key_path = "${cfg.signingPrivateKeyPath}";
+        key_path = cfg.signingPrivateKeyPath;
         upload = cfg.uploadTo;
       });
       serverBin = "${pkgs.nix-post-build-hook-queue-server}/bin/nix-post-build-hook-queue-server";
