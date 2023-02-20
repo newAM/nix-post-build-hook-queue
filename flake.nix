@@ -20,19 +20,23 @@
 
     src = craneLib.cleanCargoSource ./.;
 
-    cargoArtifacts = craneLib.buildDepsOnly {inherit src;};
+    namePrefix = "nix-post-build-hook-queue";
+    inherit (clientCargoToml.package) version;
+
+    cargoArtifacts = craneLib.buildDepsOnly {
+      pname = "${namePrefix}-deps";
+      inherit src version;
+    };
   in {
     packages.x86_64-linux = {
       client = crane.lib.x86_64-linux.buildPackage {
-        inherit src cargoArtifacts;
+        inherit src cargoArtifacts version;
         pname = clientCargoToml.package.name;
-        inherit (clientCargoToml.package) version;
         cargoExtraArgs = "-p ${clientCargoToml.package.name}";
       };
       server = crane.lib.x86_64-linux.buildPackage {
-        inherit src cargoArtifacts;
+        inherit src cargoArtifacts version;
         pname = serverCargoToml.package.name;
-        inherit (serverCargoToml.package) version;
         cargoExtraArgs = "-p ${serverCargoToml.package.name}";
       };
     };
@@ -43,11 +47,15 @@
       inherit (self.packages.x86_64-linux) client server;
 
       clippy = craneLib.cargoClippy {
-        inherit src cargoArtifacts;
+        pname = "${namePrefix}-clippy";
+        inherit src cargoArtifacts version;
         cargoClippyExtraArgs = "-- --deny warnings";
       };
 
-      rustfmt = craneLib.cargoFmt {inherit src;};
+      rustfmt = craneLib.cargoFmt {
+        pname = "${namePrefix}-rustfmt";
+        inherit src version;
+      };
 
       alejandra = pkgs.runCommand "alejandra" {} ''
         ${pkgs.alejandra}/bin/alejandra --check ${nixSrc}
