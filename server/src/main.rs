@@ -68,7 +68,9 @@ fn run_timeout(child: io::Result<Child>, timeout: Duration) -> anyhow::Result<Op
 }
 
 fn main() -> anyhow::Result<()> {
-    systemd_journal_logger::init().context("Failed to setup logging")?;
+    systemd_journal_logger::JournalLog::default()
+        .install()
+        .context("Failed to setup logging")?;
     log::set_max_level(LevelFilter::Debug);
 
     ctrlc::set_handler(|| {
