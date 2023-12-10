@@ -97,6 +97,7 @@ in {
         isSystemUser = true;
         createHome = true;
         home = stateDir;
+        shell = pkgs.bashInteractive;
       };
       groups."${cfg.group}" = {};
     };
