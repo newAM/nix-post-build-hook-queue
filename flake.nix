@@ -13,7 +13,7 @@
     crane,
   }: let
     pkgs = nixpkgs.legacyPackages.x86_64-linux;
-    craneLib = crane.lib.x86_64-linux;
+    craneLib = crane.mkLib pkgs;
 
     clientCargoToml = nixpkgs.lib.importTOML ./client/Cargo.toml;
     serverCargoToml = nixpkgs.lib.importTOML ./server/Cargo.toml;
@@ -29,12 +29,12 @@
     };
   in {
     packages.x86_64-linux = {
-      client = crane.lib.x86_64-linux.buildPackage {
+      client = craneLib.buildPackage {
         inherit src cargoArtifacts version;
         pname = clientCargoToml.package.name;
         cargoExtraArgs = "-p ${clientCargoToml.package.name}";
       };
-      server = crane.lib.x86_64-linux.buildPackage {
+      server = craneLib.buildPackage {
         inherit src cargoArtifacts version;
         pname = serverCargoToml.package.name;
         cargoExtraArgs = "-p ${serverCargoToml.package.name}";
