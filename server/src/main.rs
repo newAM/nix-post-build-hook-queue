@@ -123,7 +123,7 @@ fn main() -> anyhow::Result<()> {
                 .arg(path)
                 .spawn();
 
-            let signed: bool = run_timeout(child, SIGNING_TIMEOUT)?.map_or(false, |s| s == 0);
+            let signed: bool = run_timeout(child, SIGNING_TIMEOUT)? == Some(0);
             if !signed {
                 log::warn!("Path is not signed, skipping all other actions");
                 continue;
