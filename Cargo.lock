@@ -47,7 +47,6 @@ name = "nix-post-build-hook-queue-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "nix-post-build-hook-queue-shared",
 ]
 
 [[package]]
@@ -56,13 +55,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "log",
- "nix-post-build-hook-queue-shared",
  "systemd-journal-logger",
 ]
-
-[[package]]
-name = "nix-post-build-hook-queue-shared"
-version = "0.1.0"
 
 [[package]]
 name = "rustix"

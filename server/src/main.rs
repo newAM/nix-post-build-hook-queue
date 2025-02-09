@@ -1,11 +1,12 @@
 use anyhow::Context;
 use log::LevelFilter;
-use nix_post_build_hook_queue_shared::SOCK_PATH;
 use std::{
     ffi::OsStr,
-    fs::{self},
     io::{self, ErrorKind},
-    os::unix::{net::UnixDatagram, prelude::OsStrExt},
+    os::{
+        fd::AsFd as _,
+        unix::{net::UnixDatagram, prelude::OsStrExt},
+    },
     process::{Child, Command},
     time::{Duration, Instant},
 };
@@ -52,16 +53,29 @@ fn main() -> anyhow::Result<()> {
         .context("Failed to install logger")?;
     log::set_max_level(LevelFilter::Debug);
 
-    let _ = fs::remove_file(SOCK_PATH);
-    let sock: UnixDatagram = UnixDatagram::bind(SOCK_PATH)
-        .with_context(|| format!("Failed to bind socket at {SOCK_PATH}"))?;
+    let stdin_fd = std::io::stdin()
+        .as_fd()
+        .try_clone_to_owned()
+        .context("Failed to convert stdin to an owned fd")?;
 
-    log::debug!("Bound socket at {SOCK_PATH}");
+    let sock: UnixDatagram = UnixDatagram::from(stdin_fd);
 
     // A store path over 4096 characters would be insane, right?
     let mut buf: Vec<u8> = vec![0; 4096];
     loop {
-        let n_bytes: usize = sock.recv(&mut buf).context("Failed to recv from socket")?;
+        let n_bytes: usize = match sock.recv(&mut buf) {
+            Ok(n_bytes) => n_bytes,
+            Err(e) => match e.kind() {
+                ErrorKind::WouldBlock => {
+                    // service will be started by systemd when there is more data
+                    std::process::exit(0);
+                }
+                _ => {
+                    log::error!("Failed to recv from socket: {e:?}");
+                    std::process::exit(1);
+                }
+            },
+        };
         if n_bytes == buf.len() {
             log::error!("Used the complete buffer, {n_bytes} bytes, path may be truncated");
         }

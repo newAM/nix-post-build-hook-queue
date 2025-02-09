@@ -109,9 +109,7 @@ in
           print(f"{store_path=}")
           cache.wait_until_succeeds(f"nix-store --verify-path {store_path}", timeout=3)
 
-      with subtest("Ensure nix-post-build-hook-queue can stop gracefully"):
-        build.systemctl("stop nix-post-build-hook-queue.service")
+      with subtest("Graceful exit"):
         build.succeed("journalctl --grep 'nix-post-build-hook-queue.service: Deactivated successfully'")
-        build.succeed("journalctl --grep 'Stopped nix-post-build-hook-queue'")
     '';
   }

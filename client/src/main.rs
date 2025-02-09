@@ -1,6 +1,8 @@
-use anyhow::{anyhow, Context};
-use nix_post_build_hook_queue_shared::SOCK_PATH;
+use anyhow::Context;
 use std::os::unix::{net::UnixDatagram, prelude::OsStringExt};
+
+// NB: hard-coded in NixOS module
+const SOCK_PATH: &str = "/run/nix-post-build-hook-queue.sock";
 
 fn main() {
     // Never return errors
@@ -27,7 +29,7 @@ fn fallible_main() -> anyhow::Result<()> {
             .with_context(|| format!("Failed to write store path '{store_path_utf8}' to socket"))?;
         let len: usize = store_path.len();
         if n_bytes != len {
-            return Err(anyhow!("Incomplete write, wrote {n_bytes} / {len} bytes"));
+            anyhow::bail!("Incomplete write, wrote {n_bytes} / {len} bytes");
         }
     }
 

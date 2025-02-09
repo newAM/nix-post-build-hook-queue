@@ -12,13 +12,9 @@ From [Using the post-build-hook] in the nix manual:
 
 This is my implementation of a user-supplied daemon to process the store paths outside of the build loop.
 
-There are two binaries, a server and a client, both running on the same system.
+The `ost-build-hook binary writes store paths to unix domain socket for later processing.
 
-The client binary is called by `post-build-hook` in `nix.conf`, the server binary runs as a daemon.
-
-The client sends store paths to the server via unix domain socket.
-
-The server daemon will:
+When data is available on the socket systemd activates the `nix-post-build-hook-queue` service to:
 
 1. Sign paths, if `signingPrivateKeyPath` is set
 2. Upload paths, if `uploadTo` is set

@@ -5,8 +5,6 @@
   ...
 }: let
   cfg = config.services.nix-post-build-hook-queue;
-  # Also hard-coded in binaries
-  stateDir = "/var/lib/nix-post-build-hook-queue";
 in {
   options.services.nix-post-build-hook-queue = with lib; {
     enable = lib.mkEnableOption "nix-post-build-hook-queue";
@@ -90,13 +88,25 @@ in {
       }
     ];
 
+    systemd.sockets.nix-post-build-hook-queue = {
+      # NB: hard-coded in client
+      listenDatagrams = ["/run/nix-post-build-hook-queue.sock"];
+      wantedBy = ["sockets.target"];
+      partOf = ["nix-post-build-hook-queue.service"];
+      socketConfig = {
+        SocketMode = "0600";
+        SocketUser = cfg.user;
+        SocketGroup = cfg.group;
+        # start the service on incoming traffic
+        Service = "nix-post-build-hook-queue.service";
+      };
+    };
+
     users = {
       users."${cfg.user}" = {
         inherit (cfg) group;
         description = "Nix post-build user";
         isSystemUser = true;
-        createHome = true;
-        home = stateDir;
         shell = pkgs.bashInteractive;
       };
       groups."${cfg.group}" = {};
@@ -108,7 +118,6 @@ in {
     };
 
     systemd.services.nix-post-build-hook-queue = {
-      wantedBy = ["multi-user.target"];
       after = lib.optionals (cfg.uploadTo != null) ["network.target"];
       description = "nix-post-build-hook-queue";
       path = [cfg.package] ++ lib.optionals (cfg.uploadTo != null) [pkgs.openssh];
@@ -135,6 +144,8 @@ in {
         User = cfg.user;
         Group = cfg.group;
 
+        StandardInput = "socket";
+
         # hardening
         DevicePolicy = "closed";
         CapabilityBoundingSet = "";
@@ -159,9 +170,7 @@ in {
         ProtectKernelModules = true;
         ProtectKernelTunables = true;
         ProtectSystem = "strict";
-        BindPaths = [
-          stateDir
-        ];
+        BindPaths = [];
         MemoryDenyWriteExecute = true;
         LockPersonality = true;
         RemoveIPC = true;

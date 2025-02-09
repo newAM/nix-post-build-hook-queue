@@ -9,4 +9,3 @@ license = "MIT"
 
 [dependencies]
 anyhow = "1"
-nix-post-build-hook-queue-shared.path = "../shared"
