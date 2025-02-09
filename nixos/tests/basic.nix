@@ -87,13 +87,13 @@ in
     testScript = ''
       # from nixos/tests/qemu-vm-store.nix
       build_derivation = """
-        nix-build --option substitute false -E 'derivation {
-          name = "t";
+        nix-build --option substitute false -E 'derivation {{
+          name = "{name}";
           builder = "/bin/sh";
           args = ["-c" "echo something > $out"];
           system = builtins.currentSystem;
           preferLocalBuild = true;
-        }'
+        }}'
       """
 
       start_all()
@@ -103,9 +103,9 @@ in
       build.wait_for_unit("network-online.target")
       cache.wait_for_unit("network-online.target")
 
-      store_path: str = build.succeed(build_derivation).rsplit(" ", 1)[-1].strip()
-      print(f"{store_path=}")
-
-      cache.wait_until_succeeds(f"nix-store --verify-path {store_path}", timeout=3)
+      for name in ("a", "b"):
+        store_path: str = build.succeed(build_derivation.format(name=name)).rsplit(" ", 1)[-1].strip()
+        print(f"{store_path=}")
+        cache.wait_until_succeeds(f"nix-store --verify-path {store_path}", timeout=3)
     '';
   }
