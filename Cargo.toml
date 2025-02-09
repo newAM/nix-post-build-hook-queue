@@ -1,4 +1,4 @@
 [workspace]
 resolver = "2"
-members = ["post-build-hook", "server"]
-default-members = ["post-build-hook", "server"]
+members = ["post-build-hook", "post-build-hook-queue"]
+default-members = ["post-build-hook", "post-build-hook-queue"]

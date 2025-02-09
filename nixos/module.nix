@@ -137,7 +137,7 @@ in {
       serviceConfig = {
         Type = "idle";
         KillSignal = "SIGINT";
-        ExecStart = "${pkgs.nix-post-build-hook-queue}/bin/nix-post-build-hook-queue-server";
+        ExecStart = "${pkgs.nix-post-build-hook-queue}/bin/post-build-hook-queue";
         Restart = "on-failure";
         RestartSec = 300;
 

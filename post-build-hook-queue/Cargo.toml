@@ -1,5 +1,5 @@
 [package]
-name = "nix-post-build-hook-queue-server"
+name = "post-build-hook-queue"
 version = "0.1.0"
 edition = "2021"
 
