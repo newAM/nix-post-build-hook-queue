@@ -88,6 +88,8 @@
       };
 
       formatting = (treefmtEval pkgs).config.build.check self;
+
+      basic = pkgs.callPackage ./nixos/tests/basic.nix {inherit self;};
     });
 
     overlays.default = final: prev: {
