@@ -12,7 +12,7 @@ From [Using the post-build-hook] in the nix manual:
 
 This is my implementation of a user-supplied daemon to process the store paths outside of the build loop.
 
-The `ost-build-hook binary writes store paths to unix domain socket for later processing.
+The post-build-hook binary writes store paths to unix domain socket for later processing.
 
 When data is available on the socket systemd activates the `nix-post-build-hook-queue` service to:
 
