@@ -116,9 +116,9 @@ in {
       serverBin = "${pkgs.nix-post-build-hook-queue-server}/bin/nix-post-build-hook-queue-server";
     in {
       wantedBy = ["multi-user.target"];
-      after = [] ++ lib.optional (cfg.uploadTo != null) "network.target";
+      after = lib.optionals (cfg.uploadTo != null) ["network.target"];
       description = "nix-post-build-hook-queue";
-      path = [] ++ lib.optional (cfg.uploadTo != null) pkgs.openssh;
+      path = lib.optionals (cfg.uploadTo != null) [pkgs.openssh];
       environment = {
         NIX_SSHOPTS =
           "-o IPQoS=throughput"
