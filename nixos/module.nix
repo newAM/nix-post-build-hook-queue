@@ -114,7 +114,7 @@ in {
 
     nix.settings = {
       trusted-users = [cfg.user];
-      post-build-hook = "${pkgs.nix-post-build-hook-queue}/bin/nix-post-build-hook-queue-client";
+      post-build-hook = "${pkgs.nix-post-build-hook-queue}/bin/post-build-hook";
     };
 
     systemd.services.nix-post-build-hook-queue = {
