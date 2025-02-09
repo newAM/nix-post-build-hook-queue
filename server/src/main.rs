@@ -1,13 +1,11 @@
 use anyhow::Context;
 use log::LevelFilter;
 use nix_post_build_hook_queue_shared::SOCK_PATH;
-use serde::Deserialize;
 use std::{
-    ffi::{OsStr, OsString},
-    fs::{self, File},
-    io::{self, BufReader, ErrorKind},
+    ffi::OsStr,
+    fs::{self},
+    io::{self, ErrorKind},
     os::unix::{net::UnixDatagram, prelude::OsStrExt},
-    path::Path,
     process::{Child, Command},
     time::{Duration, Instant},
 };
@@ -16,26 +14,6 @@ const SIGNING_TIMEOUT: Duration = Duration::from_secs(60);
 
 // 10 minutes seems reasonable
 const UPLOAD_TIMEOUT: Duration = Duration::from_secs(600);
-
-#[derive(Debug, Deserialize)]
-struct Config {
-    /// Path to nix binary
-    nix_bin: String,
-    /// Private key path for signing
-    key_path: Option<String>,
-    /// Upload the store path to the given location
-    upload: Option<String>,
-}
-
-impl Config {
-    pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
-        let config: Self = serde_json::from_reader(BufReader::new(
-            File::open(path).context("Failed to open configuration file")?,
-        ))
-        .context("Failed to load configuration from file")?;
-        Ok(config)
-    }
-}
 
 fn run_timeout(child: io::Result<Child>, timeout: Duration) -> anyhow::Result<Option<i32>> {
     let start: Instant = Instant::now();
@@ -74,24 +52,6 @@ fn main() -> anyhow::Result<()> {
         .context("Failed to install logger")?;
     log::set_max_level(LevelFilter::Debug);
 
-    let config_file_path: OsString = match std::env::args_os().nth(1) {
-        Some(x) => x,
-        None => {
-            eprintln!(
-                "usage: {} [config-file]",
-                std::env::args_os()
-                    .next()
-                    .unwrap_or_else(|| OsString::from("???"))
-                    .to_string_lossy()
-            );
-            std::process::exit(1);
-        }
-    };
-
-    let config: Config = Config::load(config_file_path).context("Failed to load configuration")?;
-
-    log::debug!("{config:#?}");
-
     let _ = fs::remove_file(SOCK_PATH);
     let sock: UnixDatagram = UnixDatagram::bind(SOCK_PATH)
         .with_context(|| format!("Failed to bind socket at {SOCK_PATH}"))?;
@@ -107,9 +67,9 @@ fn main() -> anyhow::Result<()> {
         }
         let path: &OsStr = OsStr::from_bytes(&buf[..n_bytes]);
 
-        if let Some(key_path) = &config.key_path {
+        if let Some(key_path) = std::env::var_os("NPBHQ_SIGNING_PRIVATE_KEY_PATH") {
             log::info!("Signing {path:?}");
-            let child: io::Result<Child> = Command::new(&config.nix_bin)
+            let child: io::Result<Child> = Command::new("nix")
                 .arg("store")
                 .arg("sign")
                 .arg("--key-file")
@@ -124,10 +84,10 @@ fn main() -> anyhow::Result<()> {
             }
         }
 
-        if let Some(dst) = &config.upload {
+        if let Some(dst) = std::env::var_os("NPBHQ_UPLOAD_TO") {
             log::info!("Uploading {path:?}");
 
-            let child: io::Result<Child> = Command::new(&config.nix_bin)
+            let child: io::Result<Child> = Command::new("nix")
                 .arg("copy")
                 .arg("--to")
                 .arg(dst)

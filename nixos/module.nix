@@ -107,28 +107,28 @@ in {
       post-build-hook = "${pkgs.nix-post-build-hook-queue-client}/bin/nix-post-build-hook-queue-client";
     };
 
-    systemd.services.nix-post-build-hook-queue = let
-      configFile = pkgs.writeText "nix-post-build-hook-queue-config.json" (builtins.toJSON {
-        nix_bin = "${cfg.package}/bin/nix";
-        key_path = cfg.signingPrivateKeyPath;
-        upload = cfg.uploadTo;
-      });
-      serverBin = "${pkgs.nix-post-build-hook-queue-server}/bin/nix-post-build-hook-queue-server";
-    in {
+    systemd.services.nix-post-build-hook-queue = {
       wantedBy = ["multi-user.target"];
       after = lib.optionals (cfg.uploadTo != null) ["network.target"];
       description = "nix-post-build-hook-queue";
-      path = lib.optionals (cfg.uploadTo != null) [pkgs.openssh];
-      environment = {
-        NIX_SSHOPTS =
-          "-o IPQoS=throughput"
-          + lib.optionalString (cfg.sshPrivateKeyPath != null) " -i ${cfg.sshPrivateKeyPath}";
-      };
+      path = [cfg.package] ++ lib.optionals (cfg.uploadTo != null) [pkgs.openssh];
+      environment =
+        {
+          NIX_SSHOPTS =
+            "-o IPQoS=throughput"
+            + lib.optionalString (cfg.sshPrivateKeyPath != null) " -i ${cfg.sshPrivateKeyPath}";
+        }
+        // lib.optionalAttrs (cfg.signingPrivateKeyPath != null) {
+          NPBHQ_SIGNING_PRIVATE_KEY_PATH = cfg.signingPrivateKeyPath;
+        }
+        // lib.optionalAttrs (cfg.uploadTo != null) {
+          NPBHQ_UPLOAD_TO = cfg.uploadTo;
+        };
 
       serviceConfig = {
         Type = "idle";
         KillSignal = "SIGINT";
-        ExecStart = "${serverBin} ${configFile}";
+        ExecStart = "${pkgs.nix-post-build-hook-queue-server}/bin/nix-post-build-hook-queue-server";
         Restart = "on-failure";
         RestartSec = 300;
 
