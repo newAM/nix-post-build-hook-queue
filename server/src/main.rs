@@ -74,12 +74,6 @@ fn main() -> anyhow::Result<()> {
         .context("Failed to install logger")?;
     log::set_max_level(LevelFilter::Debug);
 
-    ctrlc::set_handler(|| {
-        log::warn!("Received SIGINT");
-        std::process::exit(1);
-    })
-    .context("Failed to set CTRL+C handler")?;
-
     let config_file_path: OsString = match std::env::args_os().nth(1) {
         Some(x) => x,
         None => {

@@ -9,7 +9,6 @@ license = "MIT"
 
 [dependencies]
 anyhow = "1"
-ctrlc = "3"
 log = "0.4"
 systemd-journal-logger = "2"
 nix-post-build-hook-queue-shared.path = "../shared"
