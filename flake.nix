@@ -14,27 +14,26 @@
     treefmt,
   }: let
     forEachSystem = nixpkgs.lib.genAttrs [
-      "aarch64-linux"
-      "x86_64-linux"
       "aarch64-darwin"
+      "aarch64-linux"
       "x86_64-darwin"
+      "x86_64-linux"
     ];
-
-    pkgs = nixpkgs.legacyPackages.x86_64-linux;
-    craneLib = crane.mkLib pkgs;
 
     clientCargoToml = nixpkgs.lib.importTOML ./client/Cargo.toml;
     serverCargoToml = nixpkgs.lib.importTOML ./server/Cargo.toml;
 
-    src = craneLib.cleanCargoSource self;
+    srcClean = pkgs: (crane.mkLib pkgs).cleanCargoSource self;
 
     namePrefix = "nix-post-build-hook-queue";
     inherit (clientCargoToml.package) version;
 
-    cargoArtifacts = craneLib.buildDepsOnly {
-      pname = "${namePrefix}-deps";
-      inherit src version;
-    };
+    cargoArtifacts = pkgs:
+      (crane.mkLib pkgs).buildDepsOnly {
+        pname = "${namePrefix}-deps";
+        inherit version;
+        src = srcClean pkgs;
+      };
 
     treefmtEval = pkgs:
       treefmt.lib.evalModule pkgs {
@@ -47,18 +46,26 @@
         };
       };
   in {
-    packages.x86_64-linux = {
-      client = craneLib.buildPackage {
-        inherit src cargoArtifacts version;
-        pname = clientCargoToml.package.name;
-        cargoExtraArgs = "-p ${clientCargoToml.package.name}";
-      };
-      server = craneLib.buildPackage {
-        inherit src cargoArtifacts version;
-        pname = serverCargoToml.package.name;
-        cargoExtraArgs = "-p ${serverCargoToml.package.name}";
-      };
-    };
+    packages = forEachSystem (
+      system: let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in {
+        client = (crane.mkLib pkgs).buildPackage {
+          pname = clientCargoToml.package.name;
+          inherit version;
+          src = srcClean pkgs;
+          cargoArtifacts = cargoArtifacts pkgs;
+          cargoExtraArgs = "-p ${clientCargoToml.package.name}";
+        };
+        server = (crane.mkLib pkgs).buildPackage {
+          pname = serverCargoToml.package.name;
+          inherit version;
+          src = srcClean pkgs;
+          cargoArtifacts = cargoArtifacts pkgs;
+          cargoExtraArgs = "-p ${serverCargoToml.package.name}";
+        };
+      }
+    );
 
     formatter = forEachSystem (
       system: let
@@ -67,17 +74,21 @@
         (treefmtEval pkgs).config.build.wrapper
     );
 
-    checks.x86_64-linux = {
-      inherit (self.packages.x86_64-linux) client server;
+    checks = forEachSystem (system: let
+      pkgs = nixpkgs.legacyPackages.${system};
+    in {
+      inherit (self.packages.${system}) client server;
 
-      clippy = craneLib.cargoClippy {
+      clippy = (crane.mkLib pkgs).cargoClippy {
         pname = "${namePrefix}-clippy";
-        inherit src cargoArtifacts version;
+        inherit version;
+        src = srcClean pkgs;
+        cargoArtifacts = cargoArtifacts pkgs;
         cargoClippyExtraArgs = "-- --deny warnings";
       };
 
       formatting = (treefmtEval pkgs).config.build.check self;
-    };
+    });
 
     overlays.default = final: prev: {
       nix-post-build-hook-queue-client = self.packages.${prev.system}.client;
