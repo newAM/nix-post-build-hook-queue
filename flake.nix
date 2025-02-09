@@ -1,7 +1,6 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    crane.url = "github:ipetkov/crane";
 
     treefmt.url = "github:numtide/treefmt-nix";
     treefmt.inputs.nixpkgs.follows = "nixpkgs";
@@ -10,7 +9,6 @@
   outputs = {
     self,
     nixpkgs,
-    crane,
     treefmt,
   }: let
     forEachSystem = nixpkgs.lib.genAttrs [
@@ -21,19 +19,33 @@
     ];
 
     clientCargoToml = nixpkgs.lib.importTOML ./client/Cargo.toml;
-    serverCargoToml = nixpkgs.lib.importTOML ./server/Cargo.toml;
 
-    srcClean = pkgs: (crane.mkLib pkgs).cleanCargoSource self;
+    # https://github.com/ipetkov/crane/blob/112e6591b2d6313b1bd05a80a754a8ee42432a7e/lib/cleanCargoSource.nix
+    cargoSrc = nixpkgs.lib.cleanSourceWith {
+      # Apply the default source cleaning from nixpkgs
+      src = nixpkgs.lib.cleanSource self;
+      # https://github.com/ipetkov/crane/blob/112e6591b2d6313b1bd05a80a754a8ee42432a7e/lib/filterCargoSources.nix
+      filter = orig_path: type: let
+        path = toString orig_path;
+        base = baseNameOf path;
+        parentDir = baseNameOf (dirOf path);
 
-    namePrefix = "nix-post-build-hook-queue";
-    inherit (clientCargoToml.package) version;
+        matchesSuffix = nixpkgs.lib.any (suffix: nixpkgs.lib.hasSuffix suffix base) [
+          # Keep rust sources
+          ".rs"
+          # Keep all toml files as they are commonly used to configure other
+          # cargo-based tools
+          ".toml"
+        ];
 
-    cargoArtifacts = pkgs:
-      (crane.mkLib pkgs).buildDepsOnly {
-        pname = "${namePrefix}-deps";
-        inherit version;
-        src = srcClean pkgs;
-      };
+        # Cargo.toml already captured above
+        isCargoFile = base == "Cargo.lock";
+
+        # .cargo/config.toml already captured above
+        isCargoConfig = parentDir == ".cargo" && base == "config";
+      in
+        type == "directory" || matchesSuffix || isCargoFile || isCargoConfig;
+    };
 
     treefmtEval = pkgs:
       treefmt.lib.evalModule pkgs {
@@ -45,25 +57,42 @@
           taplo.enable = true;
         };
       };
+
+    overlay = final: prev: {
+      nix-post-build-hook-queue = prev.rustPlatform.buildRustPackage {
+        pname = "nix-post-build-hook-queue";
+        version = clientCargoToml.package.version;
+
+        src = cargoSrc;
+
+        cargoDeps = prev.rustPlatform.importCargoLock {
+          lockFile = ./Cargo.lock;
+        };
+
+        nativeCheckInputs = [prev.clippy];
+
+        preCheck = ''
+          echo "Running clippy..."
+          cargo clippy -- -Dwarnings
+        '';
+
+        meta = {
+          description = "Nix post-build-hook queue";
+          homepage = clientCargoToml.package.repository;
+          license = prev.lib.licenses.mit;
+          maintainers = [prev.lib.maintainers.newam];
+        };
+      };
+    };
   in {
     packages = forEachSystem (
       system: let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [overlay];
+        };
       in {
-        client = (crane.mkLib pkgs).buildPackage {
-          pname = clientCargoToml.package.name;
-          inherit version;
-          src = srcClean pkgs;
-          cargoArtifacts = cargoArtifacts pkgs;
-          cargoExtraArgs = "-p ${clientCargoToml.package.name}";
-        };
-        server = (crane.mkLib pkgs).buildPackage {
-          pname = serverCargoToml.package.name;
-          inherit version;
-          src = srcClean pkgs;
-          cargoArtifacts = cargoArtifacts pkgs;
-          cargoExtraArgs = "-p ${serverCargoToml.package.name}";
-        };
+        default = pkgs.nix-post-build-hook-queue;
       }
     );
 
@@ -77,25 +106,14 @@
     checks = forEachSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
     in {
-      inherit (self.packages.${system}) client server;
-
-      clippy = (crane.mkLib pkgs).cargoClippy {
-        pname = "${namePrefix}-clippy";
-        inherit version;
-        src = srcClean pkgs;
-        cargoArtifacts = cargoArtifacts pkgs;
-        cargoClippyExtraArgs = "-- --deny warnings";
-      };
+      pkgs = self.packages.${system}.default;
 
       formatting = (treefmtEval pkgs).config.build.check self;
 
       basic = pkgs.callPackage ./nixos/tests/basic.nix {inherit self;};
     });
 
-    overlays.default = final: prev: {
-      nix-post-build-hook-queue-client = self.packages.${prev.system}.client;
-      nix-post-build-hook-queue-server = self.packages.${prev.system}.server;
-    };
+    overlays.default = overlay;
 
     nixosModules.default = import ./nixos/module.nix;
   };

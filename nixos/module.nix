@@ -114,7 +114,7 @@ in {
 
     nix.settings = {
       trusted-users = [cfg.user];
-      post-build-hook = "${pkgs.nix-post-build-hook-queue-client}/bin/nix-post-build-hook-queue-client";
+      post-build-hook = "${pkgs.nix-post-build-hook-queue}/bin/nix-post-build-hook-queue-client";
     };
 
     systemd.services.nix-post-build-hook-queue = {
@@ -137,7 +137,7 @@ in {
       serviceConfig = {
         Type = "idle";
         KillSignal = "SIGINT";
-        ExecStart = "${pkgs.nix-post-build-hook-queue-server}/bin/nix-post-build-hook-queue-server";
+        ExecStart = "${pkgs.nix-post-build-hook-queue}/bin/nix-post-build-hook-queue-server";
         Restart = "on-failure";
         RestartSec = 300;
 
