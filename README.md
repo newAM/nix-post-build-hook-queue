@@ -5,7 +5,7 @@
 From [Using the post-build-hook] in the nix manual:
 
 > The post build hook program runs after each executed build, and blocks the build loop. The build loop exits if the hook program fails.
-> 
+>
 > Concretely, this implementation will make Nix slow or unusable when the internet is slow or unreliable.
 >
 > A more advanced implementation might pass the store paths to a user-supplied daemon or queue for processing the store paths outside of the build loop.
@@ -25,7 +25,7 @@ The server daemon will:
 
 ## Usage
 
-* Add this repository to your flake inputs:
+- Add this repository to your flake inputs:
 
 ```nix
 {
@@ -35,14 +35,15 @@ The server daemon will:
     nix-post-build-hook-queue = {
       url = "github:newam/nix-post-build-hook-queue";
       inputs.nixpkgs.follows = "unstable";
+      inputs.treefmt.follows = "";
     };
   };
 }
 ```
 
-* Add `nix-post-build-hook-queue.overlays.default` to `nixpkgs.overlays`.
-* Import the `nix-post-build-hook-queue.nixosModules.default` module.
-* Configure:
+- Add `nix-post-build-hook-queue.overlays.default` to `nixpkgs.overlays`.
+- Import the `nix-post-build-hook-queue.nixosModules.default` module.
+- Configure:
 
 ```nix
 { config, ... }:
