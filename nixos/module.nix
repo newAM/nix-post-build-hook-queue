@@ -170,12 +170,9 @@ in {
         RestrictSUIDSGID = true;
         SystemCallArchitectures = "native";
         SystemCallFilter = [
-          "~@debug"
-          "~@mount"
+          "@system-service"
           "~@privileged"
           "~@resources"
-          "~@cpu-emulation"
-          "~@obsolete"
         ];
         ProtectProc = "invisible";
         ProtectHostname = true;
