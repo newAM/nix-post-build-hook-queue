@@ -65,6 +65,6 @@
       nix-post-build-hook-queue-server = self.packages.${prev.system}.server;
     };
 
-    nixosModules.default = import ./module.nix;
+    nixosModules.default = import ./nixos/module.nix;
   };
 }
