@@ -176,6 +176,7 @@ in {
         ];
         ProtectProc = "invisible";
         ProtectHostname = true;
+        UMask = "0077";
 
         # permissive to prevent GC warnings
         # "GC Warning: Couldn't read /proc/stat"
