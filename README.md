@@ -42,23 +42,18 @@ When data is available on the socket systemd activates the `nix-post-build-hook-
 - Configure:
 
 ```nix
-{ config, ... }:
-
-{
+{config, ...}: {
   # Use sops-nix to store keys: https://github.com/Mic92/sops-nix
   # Alternatives: https://nixos.wiki/wiki/Comparison_of_secret_managing_schemes
-  sops.secrets =
-    let
-      sopsAttrs = {
-        mode = "0400";
-        owner = config.services.nix-post-build-hook-queue.user;
-        restartUnits = [ "nix-post-build-hook-queue.service" ];
-      };
-    in
-    {
-      cache-signing-priv-key = sopsAttrs;
-      cache-ssh-priv-key = sopsAttrs;
+  sops.secrets = let
+    sopsAttrs = {
+      mode = "0400";
+      owner = config.services.nix-post-build-hook-queue.user;
     };
+  in {
+    cache-signing-priv-key = sopsAttrs;
+    cache-ssh-priv-key = sopsAttrs;
+  };
 
   services.nix-post-build-hook-queue = {
     enable = true;
