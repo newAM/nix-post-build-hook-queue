@@ -138,8 +138,6 @@ in {
         Type = "idle";
         KillSignal = "SIGINT";
         ExecStart = "${pkgs.nix-post-build-hook-queue}/bin/post-build-hook-queue";
-        Restart = "on-failure";
-        RestartSec = 300;
 
         User = cfg.user;
         Group = cfg.group;
