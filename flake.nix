@@ -18,7 +18,7 @@
       "x86_64-linux"
     ];
 
-    cargoToml = nixpkgs.lib.importTOML ./post-build-hook/Cargo.toml;
+    cargoToml = nixpkgs.lib.importTOML ./Cargo.toml;
 
     # https://github.com/ipetkov/crane/blob/112e6591b2d6313b1bd05a80a754a8ee42432a7e/lib/cleanCargoSource.nix
     cargoSrc = nixpkgs.lib.cleanSourceWith {
@@ -61,7 +61,7 @@
     overlay = final: prev: {
       nix-post-build-hook-queue = prev.rustPlatform.buildRustPackage {
         pname = "nix-post-build-hook-queue";
-        version = cargoToml.package.version;
+        version = cargoToml.workspace.package.version;
 
         src = cargoSrc;
 
@@ -78,7 +78,7 @@
 
         meta = {
           description = "Nix post-build-hook queue";
-          homepage = cargoToml.package.repository;
+          homepage = cargoToml.workspace.package.repository;
           license = prev.lib.licenses.mit;
           maintainers = [prev.lib.maintainers.newam];
         };
