@@ -4,7 +4,7 @@ members = ["post-build-hook", "post-build-hook-queue"]
 default-members = ["post-build-hook", "post-build-hook-queue"]
 
 [workspace.package]
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 
 authors = ["Alex Martens <alex@thinglab.org>"]
