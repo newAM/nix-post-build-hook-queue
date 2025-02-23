@@ -141,6 +141,7 @@ in {
 
         # disable rate limiting
         StartLimitIntervalSec = 0;
+        StartLimitBurst = 0;
 
         User = cfg.user;
         Group = cfg.group;
