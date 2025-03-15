@@ -5,7 +5,7 @@ default-members = ["post-build-hook", "post-build-hook-queue"]
 
 [workspace.package]
 version = "1.0.1"
-edition = "2021"
+edition = "2024"
 
 authors = ["Alex Martens <alex@thinglab.org>"]
 repository = "https://github.com/newAM/nix-post-build-hook-queue"
