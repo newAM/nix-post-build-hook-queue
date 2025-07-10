@@ -140,7 +140,6 @@ in {
         ExecStart = "${pkgs.nix-post-build-hook-queue}/bin/post-build-hook-queue";
 
         # disable rate limiting
-        StartLimitIntervalSec = 0;
         StartLimitBurst = 0;
 
         User = cfg.user;

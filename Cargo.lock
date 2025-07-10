@@ -44,14 +44,14 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "post-build-hook"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "anyhow",
 ]
 
 [[package]]
 name = "post-build-hook-queue"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "anyhow",
  "log",
