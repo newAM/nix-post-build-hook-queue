@@ -36,10 +36,10 @@ fn run_timeout(child: io::Result<Child>, timeout: Duration) -> anyhow::Result<Op
             return Ok(status.code());
         } else if elapsed > timeout {
             log::error!("Timeout of {timeout:?} exceeded, killing child");
-            if let Err(e) = child.kill() {
-                if !matches!(e.kind(), ErrorKind::InvalidInput) {
-                    anyhow::bail!("Failed to kill child process: {e:?}")
-                }
+            if let Err(e) = child.kill()
+                && !matches!(e.kind(), ErrorKind::InvalidInput)
+            {
+                anyhow::bail!("Failed to kill child process: {e:?}")
             }
             return Ok(None);
         }
