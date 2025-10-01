@@ -10,6 +10,7 @@ use std::{
     process::{Child, Command},
     time::{Duration, Instant},
 };
+use wait_timeout::ChildExt;
 
 const SIGNING_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -20,29 +21,27 @@ fn run_timeout(child: io::Result<Child>, timeout: Duration) -> anyhow::Result<Op
     let start: Instant = Instant::now();
     let mut child: Child = child.context("Failed to spawn child process")?;
 
-    loop {
+    if let Some(status) = child
+        .wait_timeout(timeout)
+        .context("Error attempting to wait for child process")?
+    {
         let elapsed: Duration = Instant::now().duration_since(start);
-        if let Some(status) = child
-            .try_wait()
-            .context("Error attempting to wait for child process")?
-        {
-            if status.success() {
-                log::debug!("Child exited in {elapsed:?}");
-            } else if let Some(code) = status.code() {
-                log::error!("Child exited with {code} in {elapsed:?}");
-            } else {
-                log::error!("Child exited without a return code in {elapsed:?}");
-            }
-            return Ok(status.code());
-        } else if elapsed > timeout {
-            log::error!("Timeout of {timeout:?} exceeded, killing child");
-            if let Err(e) = child.kill()
-                && !matches!(e.kind(), ErrorKind::InvalidInput)
-            {
-                anyhow::bail!("Failed to kill child process: {e:?}")
-            }
-            return Ok(None);
+        if status.success() {
+            log::debug!("Child exited in {elapsed:?}");
+        } else if let Some(code) = status.code() {
+            log::error!("Child exited with {code} in {elapsed:?}");
+        } else {
+            log::error!("Child exited without a return code in {elapsed:?}");
         }
+        Ok(status.code())
+    } else {
+        log::error!("Timeout of {timeout:?} exceeded, killing child");
+        if let Err(e) = child.kill()
+            && !matches!(e.kind(), ErrorKind::InvalidInput)
+        {
+            anyhow::bail!("Failed to kill child process: {e:?}")
+        }
+        Ok(None)
     }
 }
 
