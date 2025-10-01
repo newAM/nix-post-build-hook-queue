@@ -56,6 +56,7 @@ dependencies = [
  "anyhow",
  "log",
  "systemd-journal-logger",
+ "wait-timeout",
 ]
 
 [[package]]
@@ -79,6 +80,15 @@ checksum = "7266304d24ca5a4b230545fc558c80e18bd3e1d2eb1be149b6bcd04398d3e79c"
 dependencies = [
  "log",
  "rustix",
+]
+
+[[package]]
+name = "wait-timeout"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09ac3b126d3914f9849036f826e054cbabdc8519970b8998ddaf3b5bd3c65f11"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
