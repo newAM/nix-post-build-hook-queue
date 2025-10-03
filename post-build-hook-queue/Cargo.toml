@@ -10,3 +10,4 @@ license.workspace = true
 anyhow = "1"
 log = "0.4"
 systemd-journal-logger = "2"
+wait-timeout = "0.2.1"
