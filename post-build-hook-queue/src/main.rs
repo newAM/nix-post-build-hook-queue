@@ -1,13 +1,15 @@
 use anyhow::Context;
 use log::LevelFilter;
 use std::{
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
     io::{self, ErrorKind},
     os::{
         fd::AsFd as _,
         unix::{net::UnixDatagram, prelude::OsStrExt},
     },
     process::{Child, Command},
+    sync::{Arc, Mutex},
+    thread::JoinHandle,
     time::{Duration, Instant},
 };
 use wait_timeout::ChildExt;
@@ -57,57 +59,105 @@ fn main() -> anyhow::Result<()> {
         .try_clone_to_owned()
         .context("Failed to convert stdin to an owned fd")?;
 
-    let sock: UnixDatagram = UnixDatagram::from(stdin_fd);
+    let workers: usize = std::env::var("NBPHQ_WORKERS")
+        .as_deref()
+        .unwrap_or("4")
+        .parse()
+        .context("NBPHQ_WORKERS is not an unsigned integer")?;
+    let queue_size: usize = std::env::var("NBPHQ_QUEUE_SIZE")
+        .as_deref()
+        .unwrap_or("64")
+        .parse()
+        .context("NBPHQ_QUEUE_SIZE is not an unsigned integer")?;
 
+    let (sender, receiver) = std::sync::mpsc::sync_channel::<OsString>(queue_size);
+    let receiver = Arc::new(Mutex::new(receiver));
+
+    let mut worker_threads = Vec::<JoinHandle<()>>::new();
+    for _ in 0..workers {
+        let receiver = receiver.clone();
+        worker_threads.push(std::thread::spawn(move || {
+            while let Ok(path) = {
+                let receiver = receiver.lock().unwrap();
+                receiver.recv()
+            } {
+                if let Err(e) = try_push_path(&path) {
+                    log::error!(
+                        "Push path failed for path {}: {}",
+                        String::from_utf8_lossy(path.as_bytes()),
+                        e
+                    );
+                }
+            }
+        }));
+    }
+
+    let sock: UnixDatagram = UnixDatagram::from(stdin_fd);
     // A store path over 4096 characters would be insane, right?
     let mut buf: Vec<u8> = vec![0; 4096];
     loop {
         let n_bytes: usize = match sock.recv(&mut buf) {
             Ok(n_bytes) => n_bytes,
-            Err(e) => match e.kind() {
-                ErrorKind::WouldBlock => {
-                    // service will be started by systemd when there is more data
-                    std::process::exit(0);
+            Err(e) => {
+                let code = match e.kind() {
+                    ErrorKind::WouldBlock => {
+                        // service will be started by systemd when there is more data
+                        0
+                    }
+                    _ => {
+                        log::error!("Failed to recv from socket: {e:?}");
+                        1
+                    }
+                };
+                drop(sock);
+                drop(sender);
+                log::info!("Waiting for worker threads to exit");
+                for thread in worker_threads {
+                    if thread.join().is_err() {
+                        log::error!("Worker thread panicked");
+                    }
                 }
-                _ => {
-                    log::error!("Failed to recv from socket: {e:?}");
-                    std::process::exit(1);
-                }
-            },
+                std::process::exit(code);
+            }
         };
         if n_bytes == buf.len() {
             log::error!("Used the complete buffer, {n_bytes} bytes, path may be truncated");
         }
-        let path: &OsStr = OsStr::from_bytes(&buf[..n_bytes]);
+        let path: OsString = OsStr::from_bytes(&buf[..n_bytes]).to_owned();
 
-        if let Some(key_path) = std::env::var_os("NPBHQ_SIGNING_PRIVATE_KEY_PATH") {
-            log::info!("Signing {path:?}");
-            let child: io::Result<Child> = Command::new("nix")
-                .arg("store")
-                .arg("sign")
-                .arg("--key-file")
-                .arg(key_path)
-                .arg(path)
-                .spawn();
+        sender.send(path)?;
+    }
+}
 
-            let signed: bool = run_timeout(child, SIGNING_TIMEOUT)? == Some(0);
-            if !signed {
-                log::warn!("Path is not signed, skipping all other actions");
-                continue;
-            }
-        }
+fn try_push_path(path: &OsStr) -> anyhow::Result<()> {
+    if let Some(key_path) = std::env::var_os("NPBHQ_SIGNING_PRIVATE_KEY_PATH") {
+        log::info!("Signing {path:?}");
+        let child: io::Result<Child> = Command::new("nix")
+            .arg("store")
+            .arg("sign")
+            .arg("--key-file")
+            .arg(key_path)
+            .arg(path)
+            .spawn();
 
-        if let Some(dst) = std::env::var_os("NPBHQ_UPLOAD_TO") {
-            log::info!("Uploading {path:?}");
-
-            let child: io::Result<Child> = Command::new("nix")
-                .arg("copy")
-                .arg("--to")
-                .arg(dst)
-                .arg(path)
-                .spawn();
-
-            run_timeout(child, UPLOAD_TIMEOUT)?;
+        let signed: bool = run_timeout(child, SIGNING_TIMEOUT)? == Some(0);
+        if !signed {
+            anyhow::bail!("Path is not signed, skipping all other actions")
         }
     }
+
+    if let Some(dst) = std::env::var_os("NPBHQ_UPLOAD_TO") {
+        log::info!("Uploading {path:?}");
+
+        let child: io::Result<Child> = Command::new("nix")
+            .arg("copy")
+            .arg("--to")
+            .arg(dst)
+            .arg(path)
+            .spawn();
+
+        run_timeout(child, UPLOAD_TIMEOUT)?;
+    }
+
+    Ok(())
 }
