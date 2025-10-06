@@ -7,6 +7,9 @@ default-members = ["post-build-hook", "post-build-hook-queue"]
 version = "1.0.3"
 edition = "2024"
 
-authors = ["Alex Martens <alex@thinglab.org>"]
+authors = [
+  "Alex Martens <alex@thinglab.org>",
+  "Yureka Lilian <yureka@cyberchaos.dev>",
+]
 repository = "https://github.com/newAM/nix-post-build-hook-queue"
 license = "MIT"
