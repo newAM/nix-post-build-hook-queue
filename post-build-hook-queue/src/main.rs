@@ -59,16 +59,16 @@ fn main() -> anyhow::Result<()> {
         .try_clone_to_owned()
         .context("Failed to convert stdin to an owned fd")?;
 
-    let workers: usize = std::env::var("NBPHQ_WORKERS")
+    let workers: usize = std::env::var("NPBHQ_WORKERS")
         .as_deref()
         .unwrap_or("4")
         .parse()
-        .context("NBPHQ_WORKERS is not an unsigned integer")?;
-    let queue_size: usize = std::env::var("NBPHQ_QUEUE_SIZE")
+        .context("NPBHQ_WORKERS is not an unsigned integer")?;
+    let queue_size: usize = std::env::var("NPBHQ_QUEUE_SIZE")
         .as_deref()
         .unwrap_or("64")
         .parse()
-        .context("NBPHQ_QUEUE_SIZE is not an unsigned integer")?;
+        .context("NPBHQ_QUEUE_SIZE is not an unsigned integer")?;
 
     let (sender, receiver) = std::sync::mpsc::sync_channel::<OsString>(queue_size);
     let receiver = Arc::new(Mutex::new(receiver));
