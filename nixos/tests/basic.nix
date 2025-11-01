@@ -5,7 +5,7 @@
 }: let
   cacheDomain = "nix-cache.local";
 in
-  pkgs.nixosTest {
+  pkgs.testers.nixosTest {
     name = "basic";
 
     nodes = {
