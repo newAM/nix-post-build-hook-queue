@@ -1,6 +1,7 @@
 use anyhow::Context;
 use log::LevelFilter;
 use std::{
+    collections::HashSet,
     ffi::{OsStr, OsString},
     io::{self, ErrorKind},
     os::{
@@ -73,20 +74,45 @@ fn main() -> anyhow::Result<()> {
     let (sender, receiver) = std::sync::mpsc::sync_channel::<OsString>(queue_size);
     let receiver = Arc::new(Mutex::new(receiver));
 
+    // Paths that are currently being processed
+    // This prevents the same path from being signed/uploaded concurrently.
+    let upload_set: Arc<Mutex<HashSet<OsString>>> = Arc::new(Mutex::new(HashSet::new()));
+
     let mut worker_threads = Vec::<JoinHandle<()>>::new();
     for _ in 0..workers {
         let receiver = receiver.clone();
+        let upload_set = upload_set.clone();
         worker_threads.push(std::thread::spawn(move || {
             while let Ok(path) = {
                 let receiver = receiver.lock().unwrap();
                 receiver.recv()
             } {
+                // Check for duplicate processing
+                {
+                    let mut set = upload_set.lock().unwrap();
+                    if !set.insert(path.clone()) {
+                        // Path is already being processed; skip it.
+                        log::info!(
+                            "Skipping duplicate path {}",
+                            String::from_utf8_lossy(path.as_bytes())
+                        );
+                        continue;
+                    }
+                }
+
+                // Process the path
                 if let Err(e) = try_push_path(&path) {
                     log::error!(
                         "Push path failed for path {}: {}",
                         String::from_utf8_lossy(path.as_bytes()),
                         e
                     );
+                }
+
+                // Remove the path from the in‑progress set
+                {
+                    let mut set = upload_set.lock().unwrap();
+                    set.remove(&path);
                 }
             }
         }));
