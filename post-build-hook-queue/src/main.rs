@@ -2,17 +2,22 @@ use anyhow::Context;
 use log::LevelFilter;
 use std::{
     ffi::{OsStr, OsString},
+    fs::create_dir_all,
     io::{self, ErrorKind},
     os::{
         fd::AsFd as _,
         unix::{net::UnixDatagram, prelude::OsStrExt},
     },
+    path::PathBuf,
     process::{Child, Command},
     sync::{Arc, Mutex},
     thread::JoinHandle,
     time::{Duration, Instant},
 };
 use wait_timeout::ChildExt;
+
+// created by systemd service
+const UPLOAD_STATUS_DIR: &str = "/run/nix-post-build-hook-queue/uploading";
 
 const SIGNING_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -53,6 +58,8 @@ fn main() -> anyhow::Result<()> {
         .install()
         .context("Failed to install logger")?;
     log::set_max_level(LevelFilter::Debug);
+
+    create_dir_all(UPLOAD_STATUS_DIR).expect("Failed to create upload status directory");
 
     let stdin_fd = std::io::stdin()
         .as_fd()
@@ -149,6 +156,12 @@ fn try_push_path(path: &OsStr) -> anyhow::Result<()> {
     if let Some(dst) = std::env::var_os("NPBHQ_UPLOAD_TO") {
         log::info!("Uploading {path:?}");
 
+        // TODO: create file
+        let filename = OsStr::from_bytes(&path.as_bytes()[11..]);
+        let mut filepath = PathBuf::from(UPLOAD_STATUS_DIR);
+        filepath.push(filename);
+        std::fs::File::create(&filepath).context("Failed to create upload status file")?;
+
         let child: io::Result<Child> = Command::new("nix")
             .arg("copy")
             .arg("--to")
@@ -156,7 +169,13 @@ fn try_push_path(path: &OsStr) -> anyhow::Result<()> {
             .arg(path)
             .spawn();
 
-        run_timeout(child, UPLOAD_TIMEOUT)?;
+        let result = run_timeout(child, UPLOAD_TIMEOUT);
+
+        if let Err(e) = std::fs::remove_file(&filepath) {
+            log::error!("Failed to remove upload status file: {e}");
+        }
+
+        result?;
     }
 
     Ok(())
