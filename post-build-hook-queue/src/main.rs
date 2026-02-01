@@ -156,8 +156,9 @@ fn try_push_path(path: &OsStr) -> anyhow::Result<()> {
     if let Some(dst) = std::env::var_os("NPBHQ_UPLOAD_TO") {
         log::info!("Uploading {path:?}");
 
+        const PREFIX_LEN: usize = "/nix/store/".len();
         let filepath =
-            PathBuf::from(UPLOAD_STATUS_DIR).join(OsStr::from_bytes(&path.as_bytes()[11..]));
+            PathBuf::from(UPLOAD_STATUS_DIR).join(OsStr::from_bytes(&path.as_bytes()[PREFIX_LEN..]));
         std::fs::File::create(&filepath).context("Failed to create upload status file")?;
 
         let child: io::Result<Child> = Command::new("nix")
