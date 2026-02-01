@@ -59,7 +59,7 @@ fn main() -> anyhow::Result<()> {
         .context("Failed to install logger")?;
     log::set_max_level(LevelFilter::Debug);
 
-    create_dir_all(UPLOAD_STATUS_DIR).expect("Failed to create upload status directory");
+    create_dir_all(UPLOAD_STATUS_DIR).context("Failed to create upload status directory")?;
 
     let stdin_fd = std::io::stdin()
         .as_fd()
