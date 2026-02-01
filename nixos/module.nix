@@ -147,6 +147,8 @@ in {
 
         StandardInput = "socket";
 
+        RuntimeDirectory = "nix-post-build-hook-queue";
+
         # hardening
         DevicePolicy = "closed";
         CapabilityBoundingSet = "";
