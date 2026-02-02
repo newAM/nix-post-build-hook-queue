@@ -4,7 +4,7 @@ members = ["post-build-hook", "post-build-hook-queue"]
 default-members = ["post-build-hook", "post-build-hook-queue"]
 
 [workspace.package]
-version = "1.0.3"
+version = "1.1.0"
 edition = "2024"
 
 authors = [
