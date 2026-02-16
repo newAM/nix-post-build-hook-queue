@@ -12,6 +12,7 @@ in {
     signingPrivateKeyPath = mkOption {
       type = types.nullOr types.path;
       default = null;
+      example = "/run/secrets/nix-store-signing-priv-key";
       description = ''
         Path to the PEM encoded private key to sign store paths.
 
@@ -33,11 +34,11 @@ in {
     sshPrivateKeyPath = mkOption {
       type = types.nullOr types.path;
       default = null;
+      example = "/run/secrets/ssh-priv-key";
       description = ''
         Path to a private SSH key file.
 
-        This is only relevant if
-        <link linkend="opt-services.nix-post-build-hook-queue.uploadTo">uploadTo</link>
+        This is only relevant if `services.nix-post-build-hook-queue.uploadTo`
         is set to an SSH URL.
       '';
     };
@@ -45,17 +46,13 @@ in {
     user = mkOption {
       type = types.str;
       default = "nix-pb";
-      description = ''
-        User account under which the daemon runs.
-      '';
+      description = "User under which the daemon runs.";
     };
 
     group = mkOption {
       type = types.str;
       default = "nix-pb";
-      description = ''
-        Group under which the daemon runs.
-      '';
+      description = "Group under which the daemon runs.";
     };
   };
 
@@ -64,7 +61,7 @@ in {
       {
         assertion = !lib.isStorePath cfg.signingPrivateKeyPath;
         message = ''
-          <option>services.nix-post-build-hook-queue.signingPrivateKeyPath</option>
+          services.nix-post-build-hook-queue.signingPrivateKeyPath
           points to a file in the Nix store.
           You should use a quoted absolute path to prevent this.
         '';
@@ -72,7 +69,7 @@ in {
       {
         assertion = !lib.isStorePath cfg.sshPrivateKeyPath;
         message = ''
-          <option>services.nix-post-build-hook-queue.sshPrivateKeyPath</option>
+          services.nix-post-build-hook-queue.sshPrivateKeyPath
           points to a file in the Nix store.
           You should use a quoted absolute path to prevent this.
         '';
