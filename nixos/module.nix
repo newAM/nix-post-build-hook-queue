@@ -102,7 +102,7 @@ in {
 
     nix.settings = {
       trusted-users = [cfg.user];
-      post-build-hook = "${pkgs.nix-post-build-hook-queue}/bin/post-build-hook";
+      post-build-hook = lib.getExe' pkgs.nix-post-build-hook-queue "post-build-hook";
     };
 
     systemd.services.nix-post-build-hook-queue = {
@@ -125,7 +125,7 @@ in {
       serviceConfig = {
         Type = "idle";
         KillSignal = "SIGINT";
-        ExecStart = "${pkgs.nix-post-build-hook-queue}/bin/post-build-hook-queue";
+        ExecStart = lib.getExe' pkgs.nix-post-build-hook-queue "post-build-hook-queue";
 
         # disable rate limiting
         StartLimitBurst = 0;
