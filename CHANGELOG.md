@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Removed
 
 - Removed the `services.nix-post-build-hook-queue.package` option.
+- Removed the `services.nix-post-build-hook-queue.user` and `services.nix-post-build-hook-queue.group` options, the service now runs as a dynamic user.
 
 ## [1.1.0] - 2026-02-01
 

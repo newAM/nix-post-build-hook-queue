@@ -42,18 +42,6 @@ in {
         is set to an SSH URL.
       '';
     };
-
-    user = mkOption {
-      type = types.str;
-      default = "nix-pb";
-      description = "User under which the daemon runs.";
-    };
-
-    group = mkOption {
-      type = types.str;
-      default = "nix-pb";
-      description = "Group under which the daemon runs.";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -83,27 +71,12 @@ in {
       partOf = ["nix-post-build-hook-queue.service"];
       socketConfig = {
         SocketMode = "0600";
-        SocketUser = cfg.user;
-        SocketGroup = cfg.group;
         # start the service on incoming traffic
         Service = "nix-post-build-hook-queue.service";
       };
     };
 
-    users = {
-      users."${cfg.user}" = {
-        inherit (cfg) group;
-        description = "Nix post-build user";
-        isSystemUser = true;
-        shell = pkgs.bashInteractive;
-      };
-      groups."${cfg.group}" = {};
-    };
-
-    nix.settings = {
-      trusted-users = [cfg.user];
-      post-build-hook = lib.getExe' pkgs.nix-post-build-hook-queue "post-build-hook";
-    };
+    nix.settings.post-build-hook = lib.getExe' pkgs.nix-post-build-hook-queue "post-build-hook";
 
     systemd.services.nix-post-build-hook-queue = {
       after = lib.optionals (cfg.uploadTo != null) ["network.target"];
@@ -113,10 +86,10 @@ in {
         {
           NIX_SSHOPTS =
             "-o IPQoS=throughput"
-            + lib.optionalString (cfg.sshPrivateKeyPath != null) " -i ${cfg.sshPrivateKeyPath}";
+            + lib.optionalString (cfg.sshPrivateKeyPath != null) " -i %d/sshPrivateKeyPath";
         }
         // lib.optionalAttrs (cfg.signingPrivateKeyPath != null) {
-          NPBHQ_SIGNING_PRIVATE_KEY_PATH = cfg.signingPrivateKeyPath;
+          NPBHQ_SIGNING_PRIVATE_KEY_PATH = "%d/signingPrivateKeyPath";
         }
         // lib.optionalAttrs (cfg.uploadTo != null) {
           NPBHQ_UPLOAD_TO = cfg.uploadTo;
@@ -126,18 +99,22 @@ in {
         Type = "idle";
         KillSignal = "SIGINT";
         ExecStart = lib.getExe' pkgs.nix-post-build-hook-queue "post-build-hook-queue";
+        StandardInput = "socket";
+        RuntimeDirectory = "nix-post-build-hook-queue";
+        LoadCredential =
+          []
+          ++ lib.optionals (cfg.signingPrivateKeyPath != null) [
+            "signingPrivateKeyPath:${cfg.signingPrivateKeyPath}"
+          ]
+          ++ lib.optionals (cfg.sshPrivateKeyPath != null) [
+            "sshPrivateKeyPath:${cfg.sshPrivateKeyPath}"
+          ];
 
         # disable rate limiting
         StartLimitBurst = 0;
 
-        User = cfg.user;
-        Group = cfg.group;
-
-        StandardInput = "socket";
-
-        RuntimeDirectory = "nix-post-build-hook-queue";
-
         # hardening
+        DynamicUser = true;
         DevicePolicy = "closed";
         CapabilityBoundingSet = "";
         RestrictAddressFamilies =
