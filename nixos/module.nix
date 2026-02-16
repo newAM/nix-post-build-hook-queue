@@ -9,15 +9,6 @@ in {
   options.services.nix-post-build-hook-queue = with lib; {
     enable = lib.mkEnableOption "nix-post-build-hook-queue";
 
-    package = mkOption {
-      type = types.package;
-      default = pkgs.nix;
-      defaultText = literalExpression "pkgs.nix";
-      description = ''
-        The Nix package instance to use for the post-build actions.
-      '';
-    };
-
     signingPrivateKeyPath = mkOption {
       type = types.nullOr types.path;
       default = null;
@@ -120,7 +111,7 @@ in {
     systemd.services.nix-post-build-hook-queue = {
       after = lib.optionals (cfg.uploadTo != null) ["network.target"];
       description = "nix-post-build-hook-queue";
-      path = [cfg.package] ++ lib.optionals (cfg.uploadTo != null) [pkgs.openssh];
+      path = [config.nix.package] ++ lib.optionals (cfg.uploadTo != null) [pkgs.openssh];
       environment =
         {
           NIX_SSHOPTS =
