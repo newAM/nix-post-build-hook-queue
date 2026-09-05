@@ -28,7 +28,7 @@ in
         # do not attempt to fetch from cache.nixos.org
         nix.settings = {
           substituters = lib.mkForce [];
-          experimental-features = "nix-command";
+          experimental-features = ["nix-command"];
         };
 
         services.nix-post-build-hook-queue = {
